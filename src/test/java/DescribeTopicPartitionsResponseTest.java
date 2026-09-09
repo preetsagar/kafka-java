@@ -12,7 +12,7 @@ class DescribeTopicPartitionsResponseTest {
     @Test
     void reportsUnknownTopicWithNilIdAndNoPartitions() {
         byte[] response = DescribeTopicPartitionsResponse.build(
-                HEADER, new DescribeTopicPartitionsRequest(List.of("orders")));
+                HEADER, new DescribeTopicPartitionsRequest(List.of("orders")), ClusterMetadata.empty());
 
         ByteBuffer buf = ByteBuffer.wrap(response);
         assertEquals(7, buf.getInt());              // correlation_id
@@ -39,9 +39,42 @@ class DescribeTopicPartitionsResponseTest {
     }
 
     @Test
-    void emitsOneEntryPerRequestedTopic() {
+    void returnsTopicsSortedByName() {
         byte[] response = DescribeTopicPartitionsResponse.build(
-                HEADER, new DescribeTopicPartitionsRequest(List.of("a", "b", "c")));
-        assertEquals(4, ByteBuffer.wrap(response).get(9)); // topics array length (3 + 1)
+                HEADER, new DescribeTopicPartitionsRequest(List.of("gamma", "alpha", "beta")), ClusterMetadata.empty());
+
+        ByteBuffer buf = ByteBuffer.wrap(response);
+        buf.position(9); // correlation_id + tag + throttle_time_ms
+        assertEquals(4, buf.get()); // 3 topics + 1
+        assertEquals("alpha", readFirstTopicName(buf));
+    }
+
+    @Test
+    void knownTopicReportsRealUuidAndPartitions() {
+        ClusterMetadata metadata = ClusterMetadata.parse(Fixtures.clusterMetadataLog());
+        ClusterMetadata.Topic foo = metadata.topic("foo");
+
+        byte[] response = DescribeTopicPartitionsResponse.build(
+                HEADER, new DescribeTopicPartitionsRequest(List.of("foo")), metadata);
+
+        ByteBuffer buf = ByteBuffer.wrap(response);
+        buf.position(10); // correlation_id + tag + throttle_time_ms + topics length
+        assertEquals((short) 0, buf.getShort()); // error_code: none
+        buf.position(buf.position() + 4);        // skip name (len byte + "foo")
+        byte[] uuid = new byte[16];
+        buf.get(uuid);
+        assertArrayEquals(foo.uuid(), uuid);
+        assertEquals(0, buf.get());              // is_internal
+        assertEquals(2, buf.get());              // partitions array: 1 partition + 1
+        assertEquals((short) 0, buf.getShort()); // partition error_code
+        assertEquals(0, buf.getInt());           // partition index
+    }
+
+    private static String readFirstTopicName(ByteBuffer buf) {
+        buf.getShort(); // error_code
+        int length = buf.get() - 1;
+        byte[] name = new byte[length];
+        buf.get(name);
+        return new String(name);
     }
 }

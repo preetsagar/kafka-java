@@ -27,6 +27,17 @@ final class Protocol {
         buf.put((byte) value);
     }
 
+    /** Signed VARINT (zig-zag): used inside record batches (record size, deltas, key/value lengths). */
+    static long readSignedVarint(ByteBuffer buf) {
+        long raw = readUnsignedVarint(buf) & 0xFFFFFFFFL;
+        return (raw >>> 1) ^ -(raw & 1);
+    }
+
+    /** COMPACT_ARRAY / COMPACT_BYTES length: UNSIGNED_VARINT of {@code count + 1}, {@code 0} meaning null. */
+    static int readCompactLength(ByteBuffer buf) {
+        return readUnsignedVarint(buf) - 1;
+    }
+
     /** NULLABLE_STRING: INT16 length prefix, {@code -1} meaning null. */
     static String readNullableString(ByteBuffer buf) {
         short length = buf.getShort();
