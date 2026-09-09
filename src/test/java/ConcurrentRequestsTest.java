@@ -62,11 +62,12 @@ class ConcurrentRequestsTest {
     }
 
     private static int roundTrip(Socket socket, int correlationId) throws IOException {
-        byte[] body = ByteBuffer.allocate(9)
-                .putShort((short) 18)
-                .putShort((short) 4)
+        byte[] body = ByteBuffer.allocate(11)
+                .putShort((short) 18)   // api_key: ApiVersions
+                .putShort((short) 4)    // api_version
                 .putInt(correlationId)
-                .put((byte) 0)
+                .putShort((short) -1)   // client_id: null
+                .put((byte) 0)          // header TAG_BUFFER
                 .array();
 
         OutputStream out = socket.getOutputStream();

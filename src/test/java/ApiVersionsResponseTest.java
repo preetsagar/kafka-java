@@ -8,7 +8,7 @@ class ApiVersionsResponseTest {
 
     @Test
     void encodesApiVersionsV4BodyForSupportedVersion() {
-        byte[] response = ApiVersionsResponse.build(new RequestHeader((short) 18, (short) 4, 311));
+        byte[] response = ApiVersionsResponse.build(new RequestHeader((short) 18, (short) 4, 311, null));
 
         byte[] expected = ByteBuffer.allocate(26)
                 .putInt(311)            // correlation_id
@@ -31,7 +31,7 @@ class ApiVersionsResponseTest {
 
     @Test
     void advertisesDescribeTopicPartitions() {
-        byte[] response = ApiVersionsResponse.build(new RequestHeader((short) 18, (short) 4, 1));
+        byte[] response = ApiVersionsResponse.build(new RequestHeader((short) 18, (short) 4, 1, null));
         ByteBuffer buf = ByteBuffer.wrap(response);
         buf.position(7); // skip correlation_id, error_code, array length
 
@@ -43,7 +43,7 @@ class ApiVersionsResponseTest {
 
     @Test
     void reportsUnsupportedVersionButStillReturnsApiKeys() {
-        byte[] response = ApiVersionsResponse.build(new RequestHeader((short) 18, (short) 9, 1));
+        byte[] response = ApiVersionsResponse.build(new RequestHeader((short) 18, (short) 9, 1, null));
         ByteBuffer buf = ByteBuffer.wrap(response);
 
         assertEquals(1, buf.getInt());                  // correlation_id echoed
@@ -54,7 +54,7 @@ class ApiVersionsResponseTest {
 
     @Test
     void versionZeroIsSupported() {
-        byte[] response = ApiVersionsResponse.build(new RequestHeader((short) 18, (short) 0, 1));
+        byte[] response = ApiVersionsResponse.build(new RequestHeader((short) 18, (short) 0, 1, null));
         assertEquals((short) 0, ByteBuffer.wrap(response).getShort(4)); // error_code at offset 4
     }
 }

@@ -1,18 +1,19 @@
 import java.nio.ByteBuffer;
 
 /**
- * Kafka request header (v2), limited to the fields this broker currently needs.
+ * Kafka request header (v2): {@code api_key(INT16) api_version(INT16) correlation_id(INT32)
+ * client_id(NULLABLE_STRING) TAG_BUFFER}.
  *
- * <p>Wire layout: {@code api_key(INT16) api_version(INT16) correlation_id(INT32) ...}
+ * <p>{@link #parse} consumes the whole header, leaving {@code buf} positioned at the request body.
  */
-record RequestHeader(short apiKey, short apiVersion, int correlationId) {
+record RequestHeader(short apiKey, short apiVersion, int correlationId, String clientId) {
 
-    /** Parses the header from a message body that excludes the leading {@code message_size}. */
-    static RequestHeader parse(byte[] message) {
-        if (message.length < 8) {
-            throw new IllegalArgumentException("request header needs 8 bytes, got " + message.length);
-        }
-        ByteBuffer buf = ByteBuffer.wrap(message);
-        return new RequestHeader(buf.getShort(), buf.getShort(), buf.getInt());
+    static RequestHeader parse(ByteBuffer buf) {
+        short apiKey = buf.getShort();
+        short apiVersion = buf.getShort();
+        int correlationId = buf.getInt();
+        String clientId = Protocol.readNullableString(buf);
+        Protocol.skipTagBuffer(buf);
+        return new RequestHeader(apiKey, apiVersion, correlationId, clientId);
     }
 }

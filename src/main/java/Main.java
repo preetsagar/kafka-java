@@ -40,12 +40,25 @@ public class Main {
                 }
                 in.readFully(message);
 
-                byte[] response = ApiVersionsResponse.build(RequestHeader.parse(message));
+                byte[] response = handle(message);
                 out.write(ByteBuffer.allocate(4 + response.length).putInt(response.length).put(response).array());
                 out.flush();
             }
         } catch (IOException e) {
             System.out.println("IOException: " + e.getMessage());
         }
+    }
+
+    private static final short DESCRIBE_TOPIC_PARTITIONS = 75;
+
+    /** Parses one request frame and produces the response bytes (everything after message_size). */
+    private static byte[] handle(byte[] message) {
+        ByteBuffer buf = ByteBuffer.wrap(message);
+        RequestHeader header = RequestHeader.parse(buf);
+        return switch (header.apiKey()) {
+            case DESCRIBE_TOPIC_PARTITIONS ->
+                    DescribeTopicPartitionsResponse.build(header, DescribeTopicPartitionsRequest.parse(buf));
+            default -> ApiVersionsResponse.build(header);
+        };
     }
 }
