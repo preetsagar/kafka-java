@@ -10,14 +10,18 @@ class ApiVersionsResponseTest {
     void encodesApiVersionsV4BodyForSupportedVersion() {
         byte[] response = ApiVersionsResponse.build(new RequestHeader((short) 18, (short) 4, 311));
 
-        byte[] expected = ByteBuffer.allocate(19)
+        byte[] expected = ByteBuffer.allocate(26)
                 .putInt(311)            // correlation_id
                 .putShort((short) 0)    // error_code
-                .put((byte) 2)          // api_keys array length (N+1)
-                .putShort((short) 18)   // api_key
-                .putShort((short) 0)    // min_version
-                .putShort((short) 4)    // max_version
-                .put((byte) 0)          // entry tag buffer
+                .put((byte) 3)          // api_keys array length (N+1), 2 entries
+                .putShort((short) 18)   // ApiVersions
+                .putShort((short) 0)
+                .putShort((short) 4)
+                .put((byte) 0)
+                .putShort((short) 75)   // DescribeTopicPartitions
+                .putShort((short) 0)
+                .putShort((short) 0)
+                .put((byte) 0)
                 .putInt(0)              // throttle_time_ms
                 .put((byte) 0)          // response tag buffer
                 .array();
@@ -26,13 +30,25 @@ class ApiVersionsResponseTest {
     }
 
     @Test
-    void reportsUnsupportedVersionButStillReturnsApiKeyEntry() {
+    void advertisesDescribeTopicPartitions() {
+        byte[] response = ApiVersionsResponse.build(new RequestHeader((short) 18, (short) 4, 1));
+        ByteBuffer buf = ByteBuffer.wrap(response);
+        buf.position(7); // skip correlation_id, error_code, array length
+
+        buf.position(buf.position() + 7); // skip the ApiVersions entry
+        assertEquals((short) 75, buf.getShort());
+        assertEquals((short) 0, buf.getShort()); // min_version
+        assertEquals((short) 0, buf.getShort()); // max_version
+    }
+
+    @Test
+    void reportsUnsupportedVersionButStillReturnsApiKeys() {
         byte[] response = ApiVersionsResponse.build(new RequestHeader((short) 18, (short) 9, 1));
         ByteBuffer buf = ByteBuffer.wrap(response);
 
         assertEquals(1, buf.getInt());                  // correlation_id echoed
         assertEquals((short) 35, buf.getShort());       // UNSUPPORTED_VERSION
-        assertEquals((byte) 2, buf.get());              // still advertises one api key
+        assertEquals((byte) 3, buf.get());              // still advertises both api keys
         assertEquals((short) 18, buf.getShort());
     }
 
