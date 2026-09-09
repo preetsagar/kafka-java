@@ -16,8 +16,9 @@ public class Main {
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
             // The tester restarts the program often; SO_REUSEADDR avoids 'Address already in use'.
             serverSocket.setReuseAddress(true);
-            try (Socket client = serverSocket.accept()) {
-                serve(client);
+            while (true) {
+                Socket client = serverSocket.accept();
+                Thread.ofVirtual().start(() -> serve(client));
             }
         } catch (IOException e) {
             System.out.println("IOException: " + e.getMessage());
@@ -25,22 +26,26 @@ public class Main {
     }
 
     /** Serves requests on a single connection until the client disconnects. */
-    private static void serve(Socket client) throws IOException {
-        DataInputStream in = new DataInputStream(client.getInputStream());
-        OutputStream out = client.getOutputStream();
+    private static void serve(Socket client) {
+        try (client) {
+            DataInputStream in = new DataInputStream(client.getInputStream());
+            OutputStream out = client.getOutputStream();
 
-        while (true) {
-            byte[] message;
-            try {
-                message = new byte[in.readInt()];
-            } catch (EOFException disconnected) {
-                return;
+            while (true) {
+                byte[] message;
+                try {
+                    message = new byte[in.readInt()];
+                } catch (EOFException disconnected) {
+                    return;
+                }
+                in.readFully(message);
+
+                byte[] response = ApiVersionsResponse.build(RequestHeader.parse(message));
+                out.write(ByteBuffer.allocate(4 + response.length).putInt(response.length).put(response).array());
+                out.flush();
             }
-            in.readFully(message);
-
-            byte[] response = ApiVersionsResponse.build(RequestHeader.parse(message));
-            out.write(ByteBuffer.allocate(4 + response.length).putInt(response.length).put(response).array());
-            out.flush();
+        } catch (IOException e) {
+            System.out.println("IOException: " + e.getMessage());
         }
     }
 }
