@@ -23,9 +23,26 @@ public class Main {
         int correlationId = ByteBuffer.wrap(request, 4, 4).getInt();
         short errorCode = (apiVersion >= 0 && apiVersion <= 4) ? 0 : (short) 35; // UNSUPPORTED_VERSION
 
-        // Response: message_size + header v0 (correlation_id) + body (error_code INT16).
+        // ApiVersions v4 response body: error_code, api_keys COMPACT_ARRAY, throttle_time_ms, tag_buffer.
+        ByteBuffer body = ByteBuffer.allocate(64);
+        body.putShort(errorCode);
+        body.put((byte) 2); // COMPACT_ARRAY length = N+1, one entry
+        body.putShort((short) 18); // API_VERSIONS
+        body.putShort((short) 0);  // min_version
+        body.putShort((short) 4);  // max_version
+        body.put((byte) 0);        // entry tag_buffer
+        body.putInt(0);            // throttle_time_ms
+        body.put((byte) 0);        // response tag_buffer
+        body.flip();
+
+        // message_size + response header v0 (correlation_id) + body.
+        ByteBuffer resp = ByteBuffer.allocate(4 + 4 + body.remaining());
+        resp.putInt(4 + body.remaining());
+        resp.putInt(correlationId);
+        resp.put(body);
+
         OutputStream out = clientSocket.getOutputStream();
-        out.write(ByteBuffer.allocate(10).putInt(6).putInt(correlationId).putShort(errorCode).array());
+        out.write(resp.array());
         out.flush();
       }
     } catch (IOException e) {
