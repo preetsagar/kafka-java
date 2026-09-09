@@ -28,9 +28,12 @@ final class ClusterMetadata {
     record Topic(String name, byte[] uuid, List<Partition> partitions) {}
 
     private final Map<String, Topic> topicsByName;
+    private final Map<String, Topic> topicsByUuidHex;
 
     private ClusterMetadata(Map<String, Topic> topicsByName) {
         this.topicsByName = topicsByName;
+        this.topicsByUuidHex = new LinkedHashMap<>();
+        topicsByName.values().forEach(t -> topicsByUuidHex.put(hex(t.uuid()), t));
     }
 
     static ClusterMetadata empty() {
@@ -51,6 +54,10 @@ final class ClusterMetadata {
 
     Topic topic(String name) {
         return topicsByName.get(name);
+    }
+
+    Topic topicByUuid(byte[] uuid) {
+        return topicsByUuidHex.get(hex(uuid));
     }
 
     static ClusterMetadata parse(ByteBuffer log) {

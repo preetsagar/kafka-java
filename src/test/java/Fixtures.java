@@ -13,6 +13,11 @@ final class Fixtures {
         return ByteBuffer.wrap(read("/cluster_metadata_sample.log"));
     }
 
+    /** The on-disk log segment for {@code foo-0}: one record batch holding "Hello World!". */
+    static byte[] partitionLog() {
+        return read("/foo-0.log");
+    }
+
     private static byte[] read(String resource) {
         try (InputStream in = Fixtures.class.getResourceAsStream(resource)) {
             if (in == null) {
