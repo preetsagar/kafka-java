@@ -19,11 +19,13 @@ public class Main {
         in.readFully(request);
 
         // Request header v2: api_key(2) + api_version(2) + correlation_id(4) + ...
+        short apiVersion = ByteBuffer.wrap(request, 2, 2).getShort();
         int correlationId = ByteBuffer.wrap(request, 4, 4).getInt();
+        short errorCode = (apiVersion >= 0 && apiVersion <= 4) ? 0 : (short) 35; // UNSUPPORTED_VERSION
 
-        // Response: message_size (INT32) + header v0 (correlation_id INT32).
+        // Response: message_size + header v0 (correlation_id) + body (error_code INT16).
         OutputStream out = clientSocket.getOutputStream();
-        out.write(ByteBuffer.allocate(8).putInt(4).putInt(correlationId).array());
+        out.write(ByteBuffer.allocate(10).putInt(6).putInt(correlationId).putShort(errorCode).array());
         out.flush();
       }
     } catch (IOException e) {
