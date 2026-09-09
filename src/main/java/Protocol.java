@@ -57,6 +57,13 @@ final class Protocol {
         return new String(bytes, UTF_8);
     }
 
+    /** COMPACT_STRING: UNSIGNED_VARINT of {@code length + 1}, then UTF-8 bytes. */
+    static void writeCompactString(ByteBuffer buf, String value) {
+        byte[] bytes = value.getBytes(UTF_8);
+        writeUnsignedVarint(buf, bytes.length + 1);
+        buf.put(bytes);
+    }
+
     /** COMPACT_NULLABLE_STRING: varint {@code 0} for null, otherwise {@code length + 1} then bytes. */
     static void writeCompactNullableString(ByteBuffer buf, String value) {
         if (value == null) {

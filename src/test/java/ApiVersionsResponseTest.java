@@ -13,7 +13,8 @@ class ApiVersionsResponseTest {
         ByteBuffer expected = ByteBuffer.allocate(64);
         expected.putInt(311);           // correlation_id
         expected.putShort((short) 0);   // error_code
-        expected.put((byte) 4);         // api_keys array length (N+1), 3 entries
+        expected.put((byte) 5);         // api_keys array length (N+1), 4 entries
+        putEntry(expected, 0, 0, 11);   // Produce
         putEntry(expected, 1, 0, 16);   // Fetch
         putEntry(expected, 18, 0, 4);   // ApiVersions
         putEntry(expected, 75, 0, 0);   // DescribeTopicPartitions
@@ -27,8 +28,9 @@ class ApiVersionsResponseTest {
     }
 
     @Test
-    void advertisesFetchAndDescribeTopicPartitions() {
+    void advertisesProduceFetchAndDescribeTopicPartitions() {
         int[] keys = apiKeys(ApiVersionsResponse.build(new RequestHeader((short) 18, (short) 4, 1, null)));
+        assertContains(keys, 0);
         assertContains(keys, 1);
         assertContains(keys, 18);
         assertContains(keys, 75);
@@ -41,7 +43,7 @@ class ApiVersionsResponseTest {
 
         assertEquals(1, buf.getInt());             // correlation_id echoed
         assertEquals((short) 35, buf.getShort());  // UNSUPPORTED_VERSION
-        assertEquals((byte) 4, buf.get());         // still advertises all api keys
+        assertEquals((byte) 5, buf.get());         // still advertises all api keys
     }
 
     @Test

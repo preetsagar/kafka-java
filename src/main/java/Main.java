@@ -16,7 +16,9 @@ public class Main {
         System.err.println("Logs from your program will appear here!");
 
         Broker broker = new Broker(
-                ClusterMetadata.load(ClusterMetadata.DEFAULT_LOG_PATH), new FetchResponse(LOG_DIR));
+                ClusterMetadata.load(ClusterMetadata.DEFAULT_LOG_PATH),
+                new FetchResponse(LOG_DIR),
+                new ProduceResponse(LOG_DIR));
 
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
             // The tester restarts the program often; SO_REUSEADDR avoids 'Address already in use'.
@@ -30,8 +32,9 @@ public class Main {
         }
     }
 
-    private record Broker(ClusterMetadata metadata, FetchResponse fetchResponse) {}
+    private record Broker(ClusterMetadata metadata, FetchResponse fetchResponse, ProduceResponse produceResponse) {}
 
+    private static final short PRODUCE = 0;
     private static final short FETCH = 1;
     private static final short DESCRIBE_TOPIC_PARTITIONS = 75;
 
@@ -64,6 +67,7 @@ public class Main {
         ByteBuffer buf = ByteBuffer.wrap(message);
         RequestHeader header = RequestHeader.parse(buf);
         return switch (header.apiKey()) {
+            case PRODUCE -> broker.produceResponse().build(header, ProduceRequest.parse(buf), broker.metadata());
             case FETCH -> broker.fetchResponse().build(header, FetchRequest.parse(buf), broker.metadata());
             case DESCRIBE_TOPIC_PARTITIONS ->
                     DescribeTopicPartitionsResponse.build(header, DescribeTopicPartitionsRequest.parse(buf), broker.metadata());

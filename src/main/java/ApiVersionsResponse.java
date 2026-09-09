@@ -20,6 +20,7 @@ final class ApiVersionsResponse {
 
     /** APIs advertised to clients, in wire order. */
     static final List<SupportedApi> SUPPORTED_APIS = List.of(
+            new SupportedApi((short) 0, (short) 0, (short) 11),  // Produce
             new SupportedApi((short) 1, (short) 0, (short) 16),  // Fetch
             new SupportedApi((short) 18, (short) 0, (short) 4),  // ApiVersions
             new SupportedApi((short) 75, (short) 0, (short) 0)); // DescribeTopicPartitions
